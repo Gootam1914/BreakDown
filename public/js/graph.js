@@ -1,27 +1,27 @@
-class ArchitectureGraph {
+class Graph {
     constructor() {
         this.cy = null;
     }
 
-    render(blueprintData) {
+    render(data) {
         document.querySelector('[data-target="graph-view"]').click(); 
 
-        const elements = [];
-        blueprintData.tasks.forEach(task => {
-            elements.push({ data: { id: task.id, label: task.title } });
+        const list = [];
+        data.tasks.forEach(task => {
+            list.push({ data: { id: task.id, label: task.title } });
         });
 
-        blueprintData.tasks.forEach(task => {
+        data.tasks.forEach(task => {
             if (task.dependencies) {
                 task.dependencies.forEach(dep => {
-                    elements.push({ data: { source: dep, target: task.id } });
+                    list.push({ data: { source: dep, target: task.id } });
                 });
             }
         });
 
         this.cy = cytoscape({
             container: document.getElementById('cy-canvas'),
-            elements: elements,
+            elements: list,
             style: [
                 {
                     selector: 'node',
@@ -49,4 +49,4 @@ class ArchitectureGraph {
         });
     }
 }
-window.GraphEngine = new ArchitectureGraph();
+window.GraphEngine = new Graph();

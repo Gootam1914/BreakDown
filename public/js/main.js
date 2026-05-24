@@ -1,37 +1,36 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebarToggle && sidebar) {
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
+    const toggle = document.getElementById('menuBtn');
+    const menu = document.querySelector('.sidebar');
+    if (toggle && menu) {
+        toggle.addEventListener('click', () => {
+            menu.classList.toggle('collapsed');
         });
     }
-    const newArchBtn = document.getElementById('newBlueprintBtn');
-    if (newArchBtn) {
-        newArchBtn.addEventListener('click', async () => {
+    const createBtn = document.getElementById('addBtn');
+    if (createBtn) {
+        createBtn.addEventListener('click', async () => {
             console.log("[WORKSPACE RESET] Storing active thread and clearing layout channels...");
 
-            if (window.SessionCore && typeof window.SessionCore.hydrateWorkspace === 'function') {
-                await window.SessionCore.hydrateWorkspace();
-            } else if (typeof window.loadSidebarHistory === 'function') {
-                await window.loadSidebarHistory();
+            if (window.SessionCore && typeof window.SessionCore.load === 'function') {
+                await window.SessionCore.load();
+            } else if (typeof window.refreshHistory === 'function') {
+                await window.refreshHistory();
             }
 
-            window.currentConversationId = null;
+            window.activeId = null;
 
-            const scroller = document.getElementById('chatScroller');
-            if (scroller) {
-                scroller.innerHTML = `
+            const feed = document.getElementById('feed');
+            if (feed) {
+                feed.innerHTML = `
                     <div class="chat-bubble system" style="animation: fade-in 0.3s ease;">
                         Workspace reinitialized. Prior session committed to storage matrix history. What are we engineering next?
                     </div>
                 `;
             }
-            const matrixOutput = document.getElementById('matrixOutput');
-            if (matrixOutput) {
-                matrixOutput.innerHTML = `
+            const pane = document.getElementById('panel');
+            if (pane) {
+                pane.innerHTML = `
                     <div class="empty-state" style="animation: fade-in 0.3s ease;">
                         Awaiting execution. Enter system directives to populate the matrix.
                     </div>
@@ -40,41 +39,41 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.history-item').forEach(item => {
                 item.classList.remove('active');
             });
-            if (sidebar) sidebar.classList.remove('collapsed');
+            if (menu) menu.classList.remove('collapsed');
             
             console.log("[WORKSPACE RESET INITIALIZED SUCCESS] Execution sandbox clean.");
         });
     }
 });
 
-window.loadSidebarHistory = async function() {
-    const storedUser = localStorage.getItem('breakdown_user');
-    const userObj = storedUser ? JSON.parse(storedUser) : null;
-    const userId = userObj ? userObj.id : 'local_guest_session';
-    const listContainer = document.getElementById('historyList');
+window.refreshHistory = async function() {
+    const user = localStorage.getItem('breakdown_user');
+    const profile = user ? JSON.parse(user) : null;
+    const uid = profile ? profile.id : 'local_guest_session';
+    const wrap = document.getElementById('list');
     
-    if (!listContainer) return;
+    if (!wrap) return;
 
     try {
-        const res = await fetch(`/api/history?userId=${userId}`);
+        const res = await fetch(`/api/history?userId=${uid}`);
         if (!res.ok) throw new Error();
         const items = await res.json();
         
-        listContainer.innerHTML = '';
+        wrap.innerHTML = '';
         items.forEach(item => {
             const row = document.createElement('div');
-            row.className = `history-item ${window.currentConversationId === item.id ? 'active' : ''}`;
+            row.className = `history-item ${window.activeId === item.id ? 'active' : ''}`;
             row.innerText = item.title || "Architecture Thread";
             row.dataset.id = item.id;
             
             row.addEventListener('click', () => {
                 document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
                 row.classList.add('active');
-                window.currentConversationId = item.id;
+                window.activeId = item.id;
             });
-            listContainer.appendChild(row);
+            wrap.appendChild(row);
         });
-    } catch (e) {
+    } catch (err) {
         console.warn("[SIDEBAR SYNC STUB] Matrix history sync waiting for session auth loop initialization.");
     }
 };

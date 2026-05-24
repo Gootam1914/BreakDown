@@ -1,48 +1,47 @@
-window.currentConversationId = null;
+window.activeId = null;
 
-document.getElementById('compileBtn').addEventListener('click', async () => {
-    const inputElement = document.getElementById('directiveInput');
-    const compileButton = document.getElementById('compileBtn');
-    const scroller = document.getElementById('chatScroller');
-    const systemDirective = inputElement.value.trim();
+document.getElementById('runBtn').addEventListener('click', async () => {
+    const field = document.getElementById('box');
+    const btn = document.getElementById('runBtn');
+    const feed = document.getElementById('feed');
+    const text = field.value.trim();
 
-    if (!systemDirective) return;
+    if (!text) return;
 
-    const storedUser = localStorage.getItem('breakdown_user');
-    const userObj = storedUser ? JSON.parse(storedUser) : null;
-    const userId = userObj ? userObj.id : 'local_guest_session';
-    const userBubble = document.createElement('div');
-    userBubble.className = 'chat-bubble user';
-    userBubble.innerText = systemDirective;
-    scroller.appendChild(userBubble);
-    scroller.scrollTop = scroller.scrollHeight;
-    inputElement.value = '';
-    compileButton.innerText = "COMPILING STRATEGY...";
-    compileButton.disabled = true;
-    
+    const user = localStorage.getItem('breakdown_user');
+    const profile = user ? JSON.parse(user) : null;
+    const uid = profile ? profile.id : 'local_guest_session';
+    const userMsg = document.createElement('div');
+    userMsg.className = 'chat-bubble user';
+    userMsg.innerText = text;
+    feed.appendChild(userMsg);
+    feed.scrollTop = feed.scrollHeight;
+    field.value = '';
+    btn.innerText = "COMPILING STRATEGY...";
+    btn.disabled = true;
     try {
-        const response = await fetch('/api/ai/analyze', {
+        const res = await fetch('/api/ai/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                text: systemDirective,
-                userId: userId,
-                conversationId: window.currentConversationId 
+                text: text,
+                userId: uid,
+                conversationId: window.activeId 
             })
         });
-        if (!response.ok) throw new Error("API compilation processing failure.");
-        const data = await response.json();
+        if (!res.ok) throw new Error("API compilation processing failure.");
+        const data = await res.json();
         
         if (data.success && data.blueprint) {
-            window.currentConversationId = data.conversationId;
+            window.activeId = data.conversationId;
 
-            const systemicConfirmation = document.createElement('div');
-            systemicConfirmation.className = 'chat-bubble system';
-            systemicConfirmation.innerText = `Matrix updated for "${data.blueprint.title}". Key objectives extracted and mapped.`;
-            scroller.appendChild(systemicConfirmation);
-            scroller.scrollTop = scroller.scrollHeight;
+            const sysMsg = document.createElement('div');
+            sysMsg.className = 'chat-bubble system';
+            sysMsg.innerText = `Matrix updated for "${data.blueprint.title}". Key objectives extracted and mapped.`;
+            feed.appendChild(sysMsg);
+            feed.scrollTop = feed.scrollHeight;
 
-            renderArchitectureMatrix(data.blueprint);
+            showBlueprint(data.blueprint);
             
             if (window.SessionCore && typeof window.SessionCore.hydrateWorkspace === 'function') {
                 await window.SessionCore.hydrateWorkspace();
@@ -50,28 +49,29 @@ document.getElementById('compileBtn').addEventListener('click', async () => {
                 await window.loadSidebarHistory();
             }
         }
-    } catch (error) {
-        console.error('[ANALYSIS CORE FAILURE]:', error);
-        const errorBubble = document.createElement('div');
-        errorBubble.className = 'chat-bubble system';
-        errorBubble.style.borderColor = '#ff4a4a';
-        errorBubble.innerText = "System error encountered during compilation sequencing parameters.";
-        scroller.appendChild(errorBubble);
+    } catch (err) {
+        console.error('[ANALYSIS CORE FAILURE]:', err);
+        const errMsg = document.createElement('div');
+        errMsg.className = 'chat-bubble system';
+        errMsg.style.borderColor = '#ff4a4a';
+        errMsg.innerText = "System error encountered during compilation sequencing parameters.";
+        feed.appendChild(errMsg);
     } {
-        compileButton.disabled = false;
-        compileButton.innerText = "Compile Architecture";
+        btn.disabled = false;
+        btn.innerText = "Compile Architecture";
     }
 });
-function renderArchitectureMatrix(blueprint) {
-    const target = document.getElementById('matrixOutput');
-    target.innerHTML = ''; 
-    const card = document.createElement('div');
-    card.className = 'matrix-card';
+
+function showBlueprint(blueprint) {
+    const pane = document.getElementById('panel');
+    pane.innerHTML = ''; 
+    const item = document.createElement('div');
+    item.className = 'matrix-card';
     
-    let taskRowsHTML = '';
+    let rows = '';
     if (blueprint.tasks && Array.isArray(blueprint.tasks)) {
         blueprint.tasks.forEach(task => {
-            taskRowsHTML += `
+            rows += `
                 <div class="task-row-item">
                     <div class="task-title-info">${task.title}</div>
                     <div class="task-meta-tags">
@@ -82,7 +82,7 @@ function renderArchitectureMatrix(blueprint) {
             `;
         });
     }
-    card.innerHTML = `
+    item.innerHTML = `
         <h3>${blueprint.title || 'Untitled Blueprint'}</h3>
         <p>${blueprint.description || 'No overview details populated.'}</p>
         
@@ -92,9 +92,10 @@ function renderArchitectureMatrix(blueprint) {
         </div>
 
         <div class="task-list-container">
-            ${taskRowsHTML || '<div class="empty-state">No sequenced steps mapped.</div>'}
+            ${rows || '<div class="empty-state">No sequenced steps mapped.</div>'}
         </div>
     `;
-    target.appendChild(card);
+    pane.appendChild(item);
 }
-window.RenderMatrixCore = renderArchitectureMatrix;
+
+window.RenderMatrixCore = showBlueprint;

@@ -2,10 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const aiController = require('./controllers/ai.controller');
+const api = require('./controllers/ai.controller');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/dashboard.html'));
 });
 
-app.post('/api/ai/analyze', aiController.analyzeBlueprint);
+app.post('/api/ai/analyze', api.analyzeBlueprint);
 
 app.get('/api/history', async (req, res) => {
     const { userId } = req.query;
@@ -28,14 +28,14 @@ app.get('/api/history', async (req, res) => {
 
     try {
         const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
+        const db = new PrismaClient();
 
-        const history = await prisma.conversation.findMany({
+        const logs = await db.conversation.findMany({
             where: { userId: userId },
             orderBy: { createdAt: 'desc' }
         });
-        return res.json(history);
-    } catch (dbError) {
+        return res.json(logs);
+    } catch (err) {
         console.warn(`[DATABASE FALLBACK] Could not fetch history from DB. Returning empty array.`);
         return res.json([]);
     }
@@ -48,6 +48,6 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, error: "Internal execution fault handler intercepted." });
 });
 
-app.listen(PORT, () => {
-    console.log(`[SYSTEM ACTIVE] Minimalist core listening on http://localhost:${PORT}`);
+app.listen(port, () => {
+    console.log(`[SYSTEM ACTIVE] Minimalist core listening on http://localhost:${port}`);
 });

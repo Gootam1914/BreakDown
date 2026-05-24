@@ -8,45 +8,44 @@ generator client {
 }
 
 model User {
-  id            String         @id 
-  name          String
-  createdAt     DateTime       @default(now())
-  conversations Conversation[]
-  blueprints    Blueprint[]
+  id    String   @id 
+  name  String
+  time  DateTime @default(now())
+  logs  Log[]
+  items Item[]
 }
 
-model Conversation {
-  id         String     @id @default(uuid())
-  title      String     
-  userId     String
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime   @default(now())
-  blueprints Blueprint[]
+model Log {
+  id    String   @id @default(uuid())
+  title String     
+  uid   String
+  user  User     @relation(fields: [uid], references: [id], onDelete: Cascade)
+  time  DateTime @default(now())
+  items Item[]
 }
 
-model Blueprint {
-  id             String       @id @default(uuid())
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title          String
-  description    String       @db.Text
-  mode           String       @default("General")
-  score          Float        @default(0.0)
-  metrics        Json         
-  tasks          Task[]
-  createdAt      DateTime     @default(now())
+model Item {
+  id    String   @id @default(uuid())
+  lid   String
+  log   Log      @relation(fields: [lid], references: [id], onDelete: Cascade)
+  uid   String
+  user  User     @relation(fields: [uid], references: [id], onDelete: Cascade)
+  title String
+  info  String   @db.Text
+  mode  String   @default("General")
+  rate  Float    @default(0.0)
+  meta  Json         
+  steps Step[]
+  time  DateTime @default(now())
 }
 
-
-model Task {
-  id           String    @id @default(uuid())
-  blueprintId  String
-  blueprint    Blueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
-  title        String
-  durationDays Int       @default(1)
-  complexity   String    @default("Medium") 
-  status       String    @default("Pending") 
-  createdAt    DateTime  @default(now())
+model Step {
+  id    String   @id @default(uuid())
+  iid   String
+  item  Item     @relation(fields: [iid], references: [id], onDelete: Cascade)
+  title String
+  days  Int      @default(1)
+  diff  String   @default("Medium") 
+  state String   @default("Pending") 
+  time  DateTime @default(now())
 }

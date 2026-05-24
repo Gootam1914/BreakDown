@@ -83,6 +83,8 @@ body.minimal-dark-theme {
 }
 
 .panel-header {
+    display: flex;
+    align-items: center;
     padding: 1.2rem 1.5rem;
     font-size: 0.85rem;
     text-transform: uppercase;
@@ -91,6 +93,7 @@ body.minimal-dark-theme {
     border-bottom: 1px solid var(--border-color);
     font-weight: 600;
 }
+
 .chat-scroller {
     flex: 1; padding: 2rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem;
 }
@@ -173,7 +176,6 @@ textarea {
 
 @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
 
-
 .sidebar {
     transition: margin-left 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease;
 }
@@ -199,16 +201,4 @@ textarea {
 .icon-btn:hover {
     color: var(--text-primary);
     transform: scale(1.05);
-}
-
-.panel-header {
-    display: flex;
-    align-items: center;
-    padding: 1.2rem 1.5rem;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-secondary);
-    border-bottom: 1px solid var(--border-color);
-    font-weight: 600;
 }
