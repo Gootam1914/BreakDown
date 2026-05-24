@@ -17,18 +17,15 @@ class SessionManager {
 
         window.addEventListener('load', () => this.initializeGoogleOAuth());
     }
-
     initializeGoogleOAuth() {
         if (typeof google === 'undefined') {
             console.warn("Google Identity script could not be loaded.");
             return;
         }
-
         google.accounts.id.initialize({
             client_id: "59820944251-1a5cen7hpj0ketedljp20uhioql2ebag.apps.googleusercontent.com",
             callback: (response) => this.handleGoogleCredentialResponse(response)
         });
-
         google.accounts.id.renderButton(
             document.getElementById("googleAuthBtnWrapper"),
             { theme: "outline", size: "large", width: 320, text: "continue_with" }
@@ -170,5 +167,4 @@ class SessionManager {
         }
     }
 }
-
 window.addEventListener('DOMContentLoaded', () => window.SessionCore = new SessionManager());

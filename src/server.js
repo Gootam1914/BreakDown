@@ -7,7 +7,6 @@ const aiController = require('./controllers/ai.controller');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware configuration
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
@@ -17,15 +16,12 @@ console.log(`[INIT] Loaded DATABASE_URL: ${process.env.DATABASE_URL ? "DETECTED"
 console.log(`[INIT] Loaded GEMINI_API_KEY: ${process.env.GEMINI_API_KEY ? "DETECTED" : "MISSING"}`);
 console.log("--------------------------------------------------");
 
-// Frontend UI Core Routing
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/dashboard.html'));
 });
 
-// AI Processing Terminal Endpoint
 app.post('/api/ai/analyze', aiController.analyzeBlueprint);
 
-// User-Isolated History Tracking Endpoint (Fallback Mode Integrated)
 app.get('/api/history', async (req, res) => {
     const { userId } = req.query;
     console.log(`[ROUTE] GET /api/history requested for User: ${userId}`);
@@ -41,11 +37,10 @@ app.get('/api/history', async (req, res) => {
         return res.json(history);
     } catch (dbError) {
         console.warn(`[DATABASE FALLBACK] Could not fetch history from DB. Returning empty array.`);
-        return res.json([]); // Prevents UI from crashing if Supabase is offline
+        return res.json([]);
     }
 });
 
-// Global Application Safety Net Middleware
 app.use((err, req, res, next) => {
     console.error("--- [GLOBAL SERVER ERROR CONTAINER] ---");
     console.error(err.stack || err);

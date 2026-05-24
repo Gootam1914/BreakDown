@@ -91,7 +91,6 @@ body.minimal-dark-theme {
     border-bottom: 1px solid var(--border-color);
     font-weight: 600;
 }
-
 .chat-scroller {
     flex: 1; padding: 2rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem;
 }

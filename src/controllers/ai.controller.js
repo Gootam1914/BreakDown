@@ -18,7 +18,7 @@ exports.analyzeBlueprint = async (req, res) => {
         if (!ai) {
             return res.status(500).json({ success: false, error: "Missing API Key" });
         }
-
+        /* I asked Gemini 3.5 Flash "Give me a prompt for decomposing a user's project into a structured execution blueprint. Make it detailed and usable as a prompt for AI" and it gave me this */
         const prompt = `
 You are the Breakdown Intelligence Engine. Decompose the user's project into a structured execution blueprint.
 Output ONLY valid JSON matching this exact structure:
