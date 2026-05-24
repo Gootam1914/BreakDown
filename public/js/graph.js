@@ -4,15 +4,13 @@ class ArchitectureGraph {
     }
 
     render(blueprintData) {
-        document.querySelector('[data-target="graph-view"]').click(); // Auto-switch tab
+        document.querySelector('[data-target="graph-view"]').click(); 
 
         const elements = [];
-        // Map Nodes
         blueprintData.tasks.forEach(task => {
             elements.push({ data: { id: task.id, label: task.title } });
         });
 
-        // Map Edges (Dependencies)
         blueprintData.tasks.forEach(task => {
             if (task.dependencies) {
                 task.dependencies.forEach(dep => {

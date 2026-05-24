@@ -1,62 +1,54 @@
-/**
- * Breakdown OS - AI Analyzer Engine Liaison
- * Handles asynchronous streaming pipelines and context insertion.
- */
+window.currentConversationId = null;
 
 document.getElementById('compileBtn').addEventListener('click', async () => {
     const inputElement = document.getElementById('directiveInput');
     const compileButton = document.getElementById('compileBtn');
     const scroller = document.getElementById('chatScroller');
-    const outputArea = document.getElementById('matrixOutput');
     const systemDirective = inputElement.value.trim();
 
     if (!systemDirective) return;
 
-    if (!window.SessionCore || !window.SessionCore.user) {
-        alert("Session parameters lost. Please refresh.");
-        return;
-    }
-
-    // 1. Instantly inject the user's prompt into the ongoing Chat history window
+    const storedUser = localStorage.getItem('breakdown_user');
+    const userObj = storedUser ? JSON.parse(storedUser) : null;
+    const userId = userObj ? userObj.id : 'local_guest_session';
     const userBubble = document.createElement('div');
     userBubble.className = 'chat-bubble user';
     userBubble.innerText = systemDirective;
     scroller.appendChild(userBubble);
     scroller.scrollTop = scroller.scrollHeight;
-
-    // Clear input interface immediately
     inputElement.value = '';
-
-    // Set loading dynamics
     compileButton.innerText = "COMPILING STRATEGY...";
     compileButton.disabled = true;
-
+    
     try {
         const response = await fetch('/api/ai/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            body: JSON.stringify({ 
                 text: systemDirective,
-                userId: window.SessionCore.user.id
+                userId: userId,
+                conversationId: window.currentConversationId 
             })
         });
-
-        if (!response.ok) throw new Error("API system failure.");
+        if (!response.ok) throw new Error("API compilation processing failure.");
         const data = await response.json();
-
+        
         if (data.success && data.blueprint) {
-            // 2. Stream confirmation phrase into chat window
+            window.currentConversationId = data.conversationId;
+
             const systemicConfirmation = document.createElement('div');
             systemicConfirmation.className = 'chat-bubble system';
-            systemicConfirmation.innerText = `Architecture matrix components configured for "${data.blueprint.title}". Visualizations mapped inside the layout engine parameters.`;
+            systemicConfirmation.innerText = `Matrix updated for "${data.blueprint.title}". Key objectives extracted and mapped.`;
             scroller.appendChild(systemicConfirmation);
             scroller.scrollTop = scroller.scrollHeight;
 
-            // 3. Render raw structured components clean and legibly into data panel
             renderArchitectureMatrix(data.blueprint);
-
-            // Refresh historic records list
-            if (window.SessionCore) await window.SessionCore.hydrateWorkspace();
+            
+            if (window.SessionCore && typeof window.SessionCore.hydrateWorkspace === 'function') {
+                await window.SessionCore.hydrateWorkspace();
+            } else if (typeof window.loadSidebarHistory === 'function') {
+                await window.loadSidebarHistory();
+            }
         }
     } catch (error) {
         console.error('[ANALYSIS CORE FAILURE]:', error);
@@ -65,19 +57,17 @@ document.getElementById('compileBtn').addEventListener('click', async () => {
         errorBubble.style.borderColor = '#ff4a4a';
         errorBubble.innerText = "System error encountered during compilation sequencing parameters.";
         scroller.appendChild(errorBubble);
-    } finally {
+    } {
         compileButton.disabled = false;
         compileButton.innerText = "Compile Architecture";
     }
 });
-
 function renderArchitectureMatrix(blueprint) {
     const target = document.getElementById('matrixOutput');
-    target.innerHTML = ''; // Wipe pre-existing values
-
+    target.innerHTML = ''; 
     const card = document.createElement('div');
     card.className = 'matrix-card';
-
+    
     let taskRowsHTML = '';
     if (blueprint.tasks && Array.isArray(blueprint.tasks)) {
         blueprint.tasks.forEach(task => {
@@ -92,7 +82,6 @@ function renderArchitectureMatrix(blueprint) {
             `;
         });
     }
-
     card.innerHTML = `
         <h3>${blueprint.title || 'Untitled Blueprint'}</h3>
         <p>${blueprint.description || 'No overview details populated.'}</p>
@@ -106,9 +95,6 @@ function renderArchitectureMatrix(blueprint) {
             ${taskRowsHTML || '<div class="empty-state">No sequenced steps mapped.</div>'}
         </div>
     `;
-
     target.appendChild(card);
 }
-
-// Attach access reference globally to load from historical sidebar clicks seamlessly
 window.RenderMatrixCore = renderArchitectureMatrix;

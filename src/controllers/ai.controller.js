@@ -1,27 +1,25 @@
 const { GoogleGenAI } = require('@google/genai');
 
-// Safely initialize the Google AI SDK using the correct 2026 syntax framework
 let ai = null;
 if (process.env.GEMINI_API_KEY) {
     ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 }
 
-exports.analyzeBlueprint = async (req, res, next) => {
-    console.log("[API HIT] /api/ai/analyze triggered.");
+exports.analyzeBlueprint = async (req, res) => {
+    console.log("[API] /api/ai/analyze triggered");
     try {
         const { text, userId } = req.body;
-        console.log(`[INPUT RECEIVED] User ID: ${userId}, Prompt Length: ${text ? text.length : 0} chars`);
+        const uid = userId || 'guest';
 
         if (!text) {
-            return res.status(400).json({ success: false, error: "Directive payload empty." });
+            return res.status(400).json({ success: false, error: "Empty prompt" });
         }
 
         if (!ai) {
-            console.error("[CRITICAL] Gemini API Key is missing from your .env file!");
-            return res.status(500).json({ success: false, error: "Gemini Key Not Configured" });
+            return res.status(500).json({ success: false, error: "Missing API Key" });
         }
 
-        const systemPrompt = `
+        const prompt = `
 You are the Breakdown Intelligence Engine. Decompose the user's project into a structured execution blueprint.
 Output ONLY valid JSON matching this exact structure:
 {
@@ -35,53 +33,51 @@ Output ONLY valid JSON matching this exact structure:
   ]
 }`;
 
-        console.log("[AI CALL] Contacting gemini-2.5-flash server arrays...");
-        const response = await ai.models.generateContent({
+        console.log("[AI] Requesting data from Gemini...");
+        const aiRes = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `Directive: "${text}"`,
             config: {
-                systemInstruction: systemPrompt,
+                systemInstruction: prompt,
                 responseMimeType: 'application/json'
             }
         });
 
-        console.log("[AI SUCCESS] Payload returned cleanly from Gemini.");
-        const generatedData = JSON.parse(response.text);
+        console.log("[AI] Success");
+        const data = JSON.parse(aiRes.text);
 
-        // --- SAFE DATABASE PERSISTENCE LAYER ---
         try {
             const { PrismaClient } = require('@prisma/client');
             const prisma = new PrismaClient();
 
-            console.log("[DB OPERATION] Attempting to log metrics to Supabase...");
-
-            // Upsert User profile container
+            console.log("[DB] Saving data...");
+            
             await prisma.user.upsert({
-                where: { id: userId },
+                where: { id: uid },
                 update: {},
-                create: { id: userId, name: 'Architect' }
+                create: { id: uid, name: 'Architect' }
             });
 
-            const newConversation = await prisma.conversation.create({
-                data: { title: generatedData.title || "New Strategy", userId: userId }
+            const conv = await prisma.conversation.create({
+                data: { title: data.title || "New Project", userId: uid }
             });
 
-            const savedBlueprint = await prisma.blueprint.create({
+            const blueprint = await prisma.blueprint.create({
                 data: {
-                    conversationId: newConversation.id,
-                    userId: userId,
-                    title: generatedData.title || "New Strategy",
-                    description: generatedData.description || "",
-                    score: parseFloat(generatedData.score) || 0.0,
-                    metrics: generatedData.metrics || {}
+                    conversationId: conv.id,
+                    userId: uid,
+                    title: data.title || "New Project",
+                    description: data.description || "",
+                    score: parseFloat(data.score) || 0.0,
+                    metrics: data.metrics || {}
                 }
             });
 
-            if (generatedData.tasks && Array.isArray(generatedData.tasks)) {
-                for (const t of generatedData.tasks) {
+            if (data.tasks && Array.isArray(data.tasks)) {
+                for (const t of data.tasks) {
                     await prisma.task.create({
                         data: {
-                            blueprintId: savedBlueprint.id,
+                            blueprintId: blueprint.id,
                             title: t.title,
                             durationDays: parseInt(t.durationDays) || 1,
                             complexity: t.complexity || "Medium"
@@ -89,24 +85,21 @@ Output ONLY valid JSON matching this exact structure:
                     });
                 }
             }
-            console.log("[DB SUCCESS] User session synchronized cleanly with Supabase cloud.");
+            
+            console.log("[DB] Success");
+            return res.json({ success: true, conversationId: conv.id, blueprint: data });
 
-            return res.json({ success: true, conversationId: newConversation.id, blueprint: generatedData });
-
-        } catch (dbError) {
-            // This is the safety switch: If the database password/URL layout fails, print it, but don't crash the AI response!
-            console.error("--- [SUPABASE CONNECTION ERROR REPORT] ---");
-            console.error("Your database rejected the saving mechanism. Error details:");
-            console.error(dbError.message || dbError);
-            console.error("------------------------------------------");
-            console.log("[FALLBACK ROUTE ACTIVATED] Processing request via client sandbox mode.");
-
-            // Send back the data anyway so the user can see their blueprint on screen!
-            return res.json({ success: true, conversationId: "mock_conv_" + Date.now(), blueprint: generatedData });
+        } catch (dbErr) {
+            console.error("[DB ERROR] Falling back to sandbox output:", dbErr.message || dbErr);
+            return res.json({ 
+                success: true, 
+                conversationId: "sandbox_" + Math.floor(Math.random() * 100000), 
+                blueprint: data 
+            });
         }
 
-    } catch (error) {
-        console.error("[CRITICAL ENGINE FAILURE]:", error);
-        next(error);
+    } catch (err) {
+        console.error("[CRITICAL FAILURE]:", err);
+        res.status(500).json({ success: false, error: "Server execution error" });
     }
 };

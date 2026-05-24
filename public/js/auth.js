@@ -1,7 +1,3 @@
-/**
- * Breakdown OS - Identity & Session Management Core
- * Handles user-isolated secure caching and sandbox execution toggles.
- */
 class SessionManager {
     constructor() {
         this.user = JSON.parse(localStorage.getItem('breakdown_user')) || null;
@@ -15,12 +11,10 @@ class SessionManager {
         this.userNameDisplay = document.getElementById('userNameDisplay');
         this.userAvatar = document.getElementById('userAvatar');
 
-        // Setup Component Event Listeners
         document.getElementById('guestAuthBtn').addEventListener('click', () => this.loginAsGuest());
         document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
         document.getElementById('newBlueprintBtn').addEventListener('click', () => this.startNewBlueprint());
 
-        // Initialize Official Google Identity Services
         window.addEventListener('load', () => this.initializeGoogleOAuth());
     }
 
@@ -30,23 +24,18 @@ class SessionManager {
             return;
         }
 
-        // Initialize Google Client Framework
         google.accounts.id.initialize({
-            // Replace with your real client ID when deploying to production
-            client_id: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+            client_id: "59820944251-1a5cen7hpj0ketedljp20uhioql2ebag.apps.googleusercontent.com",
             callback: (response) => this.handleGoogleCredentialResponse(response)
         });
 
-        // Render the official minimalist button inside our target wrapper
         google.accounts.id.renderButton(
             document.getElementById("googleAuthBtnWrapper"),
             { theme: "outline", size: "large", width: 320, text: "continue_with" }
         );
     }
-
     handleGoogleCredentialResponse(response) {
         try {
-            // Decode the secure JWT payload sent back by Google's servers
             const base64Url = response.credential.split('.')[1];
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
             const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
@@ -55,15 +44,14 @@ class SessionManager {
 
             const googleUser = JSON.parse(jsonPayload);
 
-            // Isolate data by pulling Google's permanent sub ID string
             this.user = {
                 id: 'goog_usr_' + googleUser.sub,
                 name: googleUser.name
             };
-
             localStorage.setItem('breakdown_user', JSON.stringify(this.user));
             this.checkSession();
-        } catch (error) {
+        } 
+        catch (error) {
             console.error("Google authentication decoding fault:", error);
             alert("OAuth structural handshake failed.");
         }
@@ -86,7 +74,6 @@ class SessionManager {
             return;
         }
 
-        // Construct localized user signature
         this.user = {
             id: 'local_usr_' + Math.random().toString(36).substr(2, 9),
             name: name
@@ -98,7 +85,6 @@ class SessionManager {
     }
 
     simulateGoogleAuth() {
-        // Mocking Google OAuth payload redirection match
         this.user = {
             id: 'goog_usr_77x92a3b',
             name: 'Alex Mercer'
@@ -112,7 +98,6 @@ class SessionManager {
         this.user = null;
         this.currentConversationId = null;
 
-        // Clear the screen of private data
         document.getElementById('historyList').innerHTML = '';
         document.getElementById('directiveInput').value = '';
         if (window.GraphEngine && window.GraphEngine.cy) {
@@ -127,7 +112,6 @@ class SessionManager {
         this.userAvatar.innerText = this.user.name.charAt(0).toUpperCase();
 
         try {
-            // Fetch ONLY this user's history from the backend
             const response = await fetch(`/api/history?userId=${this.user.id}`);
             if (!response.ok) throw new Error("History synchronization failure.");
 
@@ -135,7 +119,6 @@ class SessionManager {
             this.renderSidebarHistory(conversations);
         } catch (error) {
             console.error('[AUTH HYDRATION FAULT]:', error);
-            // Fallback for UI testing if backend isn't ready
             this.renderSidebarHistory([
                 { id: 'mock-1', title: 'Example Data Startup' }
             ]);
@@ -173,7 +156,6 @@ class SessionManager {
     async loadPastBlueprint(blueprintId, clickedElement) {
         this.currentConversationId = blueprintId;
 
-        // Update UI selection
         document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
         clickedElement.classList.add('active');
 
@@ -189,5 +171,4 @@ class SessionManager {
     }
 }
 
-// Boot the system
 window.addEventListener('DOMContentLoaded', () => window.SessionCore = new SessionManager());
